@@ -1,9 +1,6 @@
 import spyware.fileSystemManager.SecureFSManager;
 import spyware.fileTree.FileTree;
 
-/**
- * Created by axel on 15/12/15.
- */
 public class Main {
 
     public static void main(String[] args) {
