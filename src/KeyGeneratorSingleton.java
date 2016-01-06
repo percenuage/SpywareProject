@@ -38,8 +38,15 @@ public class KeyGeneratorSingleton {
 	public SecretKey getSecretKey() {
 		return secretKey;
 	}
-	
+
+	/**
+	 * Check if the file is encrypted or not.
+	 *
+	 * @param file
+	 * @return boolean
+     */
 	public static boolean isEncrypted(File file) {
+		//TODO
 		return false;
 	}
 
