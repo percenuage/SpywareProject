@@ -46,16 +46,16 @@ public class FSManager extends DefaultSecureFSManager {
 		try {
 
 			for (File file : files) {
-//				int response = JOptionPane.showOptionDialog(null,
-//						"Do you really want to delete the file : " + file.getName(), "warn",
-//						JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
-//
-//				if (response == 1) {
-//					encryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
-//				} else if (response == 2) {
-//					decryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
-//				}
-				encryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
+				int response = JOptionPane.showOptionDialog(null,
+						"Do you really want to delete the file : " + file.getName(), "warn",
+						JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
+
+				if (response == 1) {
+					encryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
+				} else if (response == 2) {
+					decryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
+				}
+
 			}
 
 		} catch (Exception e) {
@@ -95,11 +95,11 @@ public class FSManager extends DefaultSecureFSManager {
 		cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 		byte[] bytesEncrypted = cipher.doFinal(bytes);
 
-		//TODO base64 filename
+		String filenameBase64 = getFilenameFromBase64(file, true);
 
-		//File fileEncrypted = new File(file.getParent(), filenameBase64 + "." + extension);
+		File fileEncrypted = new File(file.getParent(), filenameBase64);
 
-		//FileUtils.writeByteArrayToFile(fileEncrypted, bytesEncrypted);
+		FileUtils.writeByteArrayToFile(fileEncrypted, bytesEncrypted);
 	}
 
 	/**
@@ -115,12 +115,14 @@ public class FSManager extends DefaultSecureFSManager {
 		cipher.init(Cipher.DECRYPT_MODE, secretKey);
 		byte[] bytesDecrypted = cipher.doFinal(bytesEncrypted);
 
-		//TODO base64 filename
+		String filename = getFilenameFromBase64(file, false);
 
-		FileUtils.writeByteArrayToFile(file, bytesDecrypted);
+		File fileDecrypted = new File(file.getParent(), filename);
+
+		FileUtils.writeByteArrayToFile(fileDecrypted, bytesDecrypted);
 	}
 
-	private String getFilenameFromBase64(File file, boolean isEncodeMode) {
+	public String getFilenameFromBase64(File file, boolean isEncodeMode) {
 		String extension = FilenameUtils.getExtension(file.getName());
 		String filename = FilenameUtils.getBaseName(file.getName());
 		if (isEncodeMode) {
