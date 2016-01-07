@@ -15,7 +15,6 @@ import java.util.Base64;
 public class FSManager extends DefaultSecureFSManager {
 
 	public static final String HTPASSWD = "./.htpasswd";
-	public static final String ALGORITHM_CIPHER = "DES";
 
 	@Override
 	public boolean isPasswordCorrect(String login, char[] password) {
