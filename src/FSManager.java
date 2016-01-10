@@ -40,25 +40,32 @@ public class FSManager extends DefaultSecureFSManager {
 	@Override
 	public void encryptDecrypt(File[] files) {
 		String[] options = {"Cancel", "Encrypt", "Decrypt"};
-		KeyGeneratorSingleton keyGenerator = KeyGeneratorSingleton.getInstance();
 
-		try {
+		String rootPassword = JOptionPane.showInputDialog(null, "Enter root password");
+		if (HtpasswdUtils.compareCredential("root", rootPassword)) {
 
-			for (File file : files) {
-				int response = JOptionPane.showOptionDialog(null,
-						"Do you really want to delete the file : " + file.getName(), "warn",
-						JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
+			KeyGeneratorSingleton keyGenerator = KeyGeneratorSingleton.getInstance(rootPassword);
 
-				if (response == 1) {
-					encryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
-				} else if (response == 2) {
-					decryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
+			try {
+
+				for (File file : files) {
+					int response = JOptionPane.showOptionDialog(null,
+							"Do you really want to delete the file : " + file.getName(), "warn",
+							JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
+
+					if (response == 1) {
+						encryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
+					} else if (response == 2) {
+						decryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
+					}
 				}
 
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-
-		} catch (Exception e) {
-			e.printStackTrace();
+		} else {
+			JOptionPane.showMessageDialog(null, "Password is not valid for \n" + "User : root", "Info",
+					JOptionPane.INFORMATION_MESSAGE);
 		}
 	}
 
