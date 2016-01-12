@@ -105,8 +105,6 @@ public class FileValidator {
 
 			verifies = dsa.verify(signature);
 			
-		} catch (FileNotFoundException e) {
-			System.out.println("The file was not signed yet");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

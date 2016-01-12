@@ -11,6 +11,8 @@ import javax.swing.*;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -20,6 +22,7 @@ import java.util.*;
 public class FSManager extends DefaultSecureFSManager {
 
 	public static final String HTPASSWD = "./.htpasswd";
+	public static final String ROOT = "root";
 
 	@Override
 	public boolean isPasswordCorrect(String login, char[] password) {
@@ -36,96 +39,125 @@ public class FSManager extends DefaultSecureFSManager {
 		}
 
 		if (!isCorrect) {
-			JOptionPane.showMessageDialog(null, "Login or password is not valid for \n" + "User : " + login, "Info",
-					JOptionPane.INFORMATION_MESSAGE);
+			JOptionPane.showMessageDialog(null, "Login or password is not valid for \n" + "User : " +
+					login, "Error", JOptionPane.ERROR_MESSAGE);
 		}
 		return isCorrect;
 	}
 
 	@Override
 	public void encryptDecrypt(File[] files) {
-		String[] options = { "Cancel", "Encrypt", "Decrypt" };
-
 		List<File> fileList = listFiles(files[0]);
 
 		String rootPassword = this.inputPassword();
 
-		if (rootPassword != null && HtpasswdUtils.compareCredential("root", rootPassword)) {
-			
+		if (rootPassword != null && HtpasswdUtils.compareCredential(ROOT, rootPassword)) {
+
 			KeyGeneratorSingleton keyGenerator = KeyGeneratorSingleton.getInstance(rootPassword);
 
-			try {
+			String[] options = { "Cancel", "Encrypt", "Decrypt" };
+			int response = JOptionPane.showOptionDialog(null,
+					"What do you want to do with : " + files[0].getAbsolutePath(), "Options",
+					JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
 
+			if (response == 1) {
+				StringBuilder sb = new StringBuilder();
 				for (File file : fileList) {
-					int response = JOptionPane.showOptionDialog(null,
-							"What do you want to do with the file : " + file.getAbsolutePath(), "warn",
-							JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
-
-					if (response == 1) {
+					try {
 						encryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
 						this.secureDelete(file);
-						JOptionPane.showMessageDialog(null, "The file was encrypted", "Info",
-								JOptionPane.INFORMATION_MESSAGE);
-					} else if (response == 2) {
-						decryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
-						this.secureDelete(file);
-						JOptionPane.showMessageDialog(null, "The file was decrypted", "Info",
-								JOptionPane.INFORMATION_MESSAGE);
+						sb.append(file.getName()).append(" has been encrypted\n");
+					} catch (Exception e) {
+						sb.append(file.getName()).append(" has not been encrypted\n");
+						e.printStackTrace();
 					}
 				}
-
-			} catch (IllegalArgumentException | IllegalBlockSizeException e) {
-				System.out.println("You can't decrypt a clear file");
-				JOptionPane.showMessageDialog(null, "You can't decrypt a clear file", "warn",
+				JOptionPane.showMessageDialog(null, sb.toString(), "Information",
 						JOptionPane.INFORMATION_MESSAGE);
-			} catch (Exception e) {
-				e.printStackTrace();
+			} else if (response == 2) {
+				StringBuilder sb = new StringBuilder();
+				for (File file : fileList) {
+					try {
+						decryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
+						this.secureDelete(file);
+						sb.append(file.getName()).append(" has been decrypted\n");
+					} catch (IllegalArgumentException | IllegalBlockSizeException e) {
+						sb.append(file.getName()).append(" has not been decrypted because it's a clear file\n");
+					} catch (Exception e) {
+						sb.append(file.getName()).append(" has not been decrypted\n");
+						e.printStackTrace();
+					}
+				}
+				JOptionPane.showMessageDialog(null, sb.toString(), "Information",
+						JOptionPane.INFORMATION_MESSAGE);
 			}
 		} else {
-			JOptionPane.showMessageDialog(null, "Password is not valid for \n" + "User : root", "Info",
+			JOptionPane.showMessageDialog(null, "Password is not valid for \n" + "User : " + ROOT, "Error",
+					JOptionPane.ERROR_MESSAGE);
+		}
+}
+
+	@Override
+	public void sign(File[] files) {
+		List<File> fileList = listFiles(files[0]);
+
+		String[] options = { "Cancel", "Sign", "Verify" };
+		int response = JOptionPane.showOptionDialog(null,
+				"What do you want to do with : " + files[0].getAbsolutePath(),
+				"Options", JOptionPane.DEFAULT_OPTION,
+				JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+
+
+		if (response == 1) {
+			StringBuilder sb = new StringBuilder();
+			for (File file : fileList) {
+				if (!file.getName().contains(FileValidator.PUBLIC_KEY) &&
+						!file.getName().contains(FileValidator.SIGNATURE)) {
+					FileValidator.signFile(file);
+					sb.append(file.getName()).append(" has been signed\n");
+				}
+			}
+			JOptionPane.showMessageDialog(null, sb.toString(), "Information",
+					JOptionPane.INFORMATION_MESSAGE);
+		} else if (response == 2) {
+			StringBuilder sb = new StringBuilder();
+			for (File file : fileList) {
+				if (FileValidator.fileIsValid(file)) {
+					sb.append(file.getName()).append(" is valid\n");
+				} else {
+					sb.append(file.getName()).append(" is invalid or not signed !\n");
+				}
+			}
+			JOptionPane.showMessageDialog(null, sb.toString(), "Information",
 					JOptionPane.INFORMATION_MESSAGE);
 		}
 	}
 
 	@Override
-	public void sign(File[] files) {
-		String[] options = { "Cancel", "Sign", "Verify" };
-
+	public void delete(File[] files) {
 		List<File> fileList = listFiles(files[0]);
 
-		for (File file : fileList) {
+		int dialogResult = JOptionPane.showConfirmDialog(null,
+				"Do you really want to delete : " + files[0].getAbsolutePath(), "Confirmation",
+				JOptionPane.YES_NO_OPTION);
 
-			int response = JOptionPane.showOptionDialog(null,
-					"What do you want to do with the file : " + file.getAbsolutePath(), "warn", JOptionPane.DEFAULT_OPTION,
-					JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
-
-			if (response == 1) {
-				FileValidator.signFile(file);
-			} else if (response == 2) {
-				Boolean isValid =  FileValidator.fileIsValid(file);
-				if (isValid) {
-					JOptionPane.showMessageDialog(null, "The file is valid", "Info",
-							JOptionPane.INFORMATION_MESSAGE);
-				} else {
-					JOptionPane.showMessageDialog(null, "The file is not signed", "warn",
-							JOptionPane.INFORMATION_MESSAGE);
+		if (dialogResult == 0) {
+			StringBuilder sb = new StringBuilder();
+			for (File file : fileList) {
+				try {
+					this.secureDelete(file);
+					sb.append(file.getName()).append(" has been securely deleted\n");
+				} catch (IOException e) {
+					sb.append(file.getName()).append(" has not been deleted\n");
+					e.printStackTrace();
 				}
 			}
-		}
-
-	}
-
-	@Override
-	public void delete(File[] files) {
-		for (File file : files) {
-			int dialogResult = JOptionPane.showConfirmDialog(null,
-					"Do you really want to delete the file : " + file.getAbsolutePath(), "warn", JOptionPane.YES_NO_OPTION);
-			if (dialogResult == 0) {
-				if (this.secureDelete(file)) {
-					System.out.println("Your file has been deleted");
-				}
+			if (files[0].isDirectory()) {
+				files[0].delete();
+				sb.append(files[0].getName()).append(" has been deleted\n");
 			}
-
+			JOptionPane.showMessageDialog(null, sb.toString(), "Information",
+					JOptionPane.INFORMATION_MESSAGE);
 		}
 	}
 
@@ -135,28 +167,22 @@ public class FSManager extends DefaultSecureFSManager {
 	 * @param file
 	 * @return boolean
      */
-	private Boolean secureDelete(File file) {
-		boolean isDeleted = false;
+	private void secureDelete(File file) throws IOException {
 		if (file.exists()) {
-			try {
-				SecureRandom random = new SecureRandom();
-				RandomAccessFile raf = new RandomAccessFile(file, "rws");
-				raf.seek(0);
-				raf.getFilePointer();
-				byte[] data = new byte[64];
-				int pos = 0;
-				while (pos < file.length()) {
-					random.nextBytes(data);
-					raf.write(data);
-					pos += data.length;
-				}
-				raf.close();
-				isDeleted = file.delete();
-			} catch (Exception e) {
-				e.printStackTrace();
+			SecureRandom random = new SecureRandom();
+			RandomAccessFile raf = new RandomAccessFile(file, "rws");
+			raf.seek(0);
+			raf.getFilePointer();
+			byte[] data = new byte[64];
+			int pos = 0;
+			while (pos < file.length()) {
+				random.nextBytes(data);
+				raf.write(data);
+				pos += data.length;
 			}
+			raf.close();
+			file.delete();
 		}
-		return isDeleted;
 	}
 
 	/**
