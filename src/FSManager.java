@@ -1,16 +1,21 @@
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.RegexFileFilter;
 import spyware.fileSystemManager.DefaultSecureFSManager;
 
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 import javax.swing.*;
 
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
+import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.Base64;
+import java.security.SecureRandom;
+import java.util.*;
 
 public class FSManager extends DefaultSecureFSManager {
 
@@ -42,16 +47,18 @@ public class FSManager extends DefaultSecureFSManager {
 		boolean isCancel = false;
 		String[] options = { "Cancel", "Encrypt", "Decrypt" };
 
+		List<File> fileList = listFiles(files[0]);
+
 		String rootPassword = JOptionPane.showInputDialog(null, "Enter root password");
-		if (rootPassword!=null && HtpasswdUtils.compareCredential("root", rootPassword)) {
+		if (rootPassword != null && HtpasswdUtils.compareCredential("root", rootPassword)) {
 			
 			KeyGeneratorSingleton keyGenerator = KeyGeneratorSingleton.getInstance(rootPassword);
 
 			try {
 
-				for (File file : files) {
+				for (File file : fileList) {
 					int response = JOptionPane.showOptionDialog(null,
-							"What do you want to do with the file : " + file.getName(), "warn",
+							"What do you want to do with the file : " + file.getAbsolutePath(), "warn",
 							JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
 
 					if (response == 1) {
@@ -63,10 +70,12 @@ public class FSManager extends DefaultSecureFSManager {
 					}
 				}
 				if (!isCancel) {
-					this.delete(files);
+					this.delete(fileList.toArray(new File[fileList.size()]));
 				}
 				
 
+			} catch (IllegalArgumentException | IllegalBlockSizeException e) {
+				System.out.println("You can't decrypt a clear file");
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -79,22 +88,27 @@ public class FSManager extends DefaultSecureFSManager {
 	@Override
 	public void sign(File[] files) {
 		String[] options = { "Cancel", "Sign", "Verify" };
-		for (File file : files) {
+
+		List<File> fileList = listFiles(files[0]);
+
+		for (File file : fileList) {
+
 			int response = JOptionPane.showOptionDialog(null,
-					"What do you want to do with the file : " + file.getName(), "warn", JOptionPane.DEFAULT_OPTION,
+					"What do you want to do with the file : " + file.getAbsolutePath(), "warn", JOptionPane.DEFAULT_OPTION,
 					JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
 
 			if (response == 1) {
-				for (File filetosign : files) {
-					FileValidator.signFile(filetosign);
-				}
+				FileValidator.signFile(file);
 			} else if (response == 2) {
-				for (File fileToVerify : files) {
-					File pkey = new File(fileToVerify.getParent(), "publicKey_"+fileToVerify.getName());
-					File sign = new File(fileToVerify.getParent(), "signature_"+fileToVerify.getName());
-					Boolean isValid =  FileValidator.fileIsValid(fileToVerify, pkey, sign);
-					System.out.println(isValid);
+				Boolean isValid =  FileValidator.fileIsValid(file);
+				if (isValid) {
+					JOptionPane.showMessageDialog(null, "The file is valid", "Info",
+							JOptionPane.INFORMATION_MESSAGE);
+				} else {
+					JOptionPane.showMessageDialog(null, "The file is not signed", "Info",
+							JOptionPane.INFORMATION_MESSAGE);
 				}
+
 			}
 		}
 
@@ -104,14 +118,38 @@ public class FSManager extends DefaultSecureFSManager {
 	public void delete(File[] files) {
 		for (File file : files) {
 			int dialogResult = JOptionPane.showConfirmDialog(null,
-					"Do you really want to delete the file : " + file.getName(), "warn", JOptionPane.YES_NO_OPTION);
+					"Do you really want to delete the file : " + file.getAbsolutePath(), "warn", JOptionPane.YES_NO_OPTION);
 			if (dialogResult == 0) {
-				if (file.delete()) {
+				if (this.secureDelete(file)) {
 					System.out.println("Your file has been deleted");
 				}
 			}
 
 		}
+	}
+
+	private Boolean secureDelete(File file) {
+		boolean isDeleted = false;
+		if (file.exists()) {
+			try {
+				SecureRandom random = new SecureRandom();
+				RandomAccessFile raf = new RandomAccessFile(file, "rws");
+				raf.seek(0);
+				raf.getFilePointer();
+				byte[] data = new byte[64];
+				int pos = 0;
+				while (pos < file.length()) {
+					random.nextBytes(data);
+					raf.write(data);
+					pos += data.length;
+				}
+				raf.close();
+				isDeleted = file.delete();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return isDeleted;
 	}
 
 	/**
@@ -154,7 +192,7 @@ public class FSManager extends DefaultSecureFSManager {
 		FileUtils.writeByteArrayToFile(fileDecrypted, bytesDecrypted);
 	}
 
-	public String getFilenameFromBase64(File file, boolean isEncodeMode) {
+	private String getFilenameFromBase64(File file, boolean isEncodeMode) {
 		String extension = FilenameUtils.getExtension(file.getName());
 		String filename = FilenameUtils.getBaseName(file.getName());
 		if (isEncodeMode) {
@@ -163,6 +201,16 @@ public class FSManager extends DefaultSecureFSManager {
 			filename = new String(Base64.getDecoder().decode(filename));
 		}
 		return filename + '.' + extension;
+	}
+
+	private List<File> listFiles(final File file) {
+		List<File> files = new ArrayList<>();
+		if (file.isDirectory()) {
+			files.addAll(FileUtils.listFiles(file, new RegexFileFilter("^(.*?)"), DirectoryFileFilter.DIRECTORY));
+		} else {
+			files.add(file);
+		}
+		return files;
 	}
 
 }

@@ -51,15 +51,4 @@ public class KeyGeneratorSingleton {
 		return cipher;
 	}
 
-	/**
-	 * Check if the file is encrypted or not.
-	 *
-	 * @param file
-	 * @return boolean
-     */
-	public static boolean isEncrypted(File file) {
-		//TODO
-		return false;
-	}
-
 }
