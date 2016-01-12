@@ -13,6 +13,11 @@ public class HtpasswdUtils {
 
     private HtpasswdUtils(){}
 
+    /**
+     * Set up utils class with htpasswd file
+     *
+     * @param htpasswdPath
+     */
     public static void setupFromFile(String htpasswdPath) {
         try {
             // Get all credentials from file htpasswd
@@ -25,6 +30,13 @@ public class HtpasswdUtils {
         }
     }
 
+    /**
+     * Compare login and password with hash from htpsswd
+     *
+     * @param login
+     * @param password
+     * @return boolean
+     */
     public static boolean compareCredential(String login, String password) {
         if (isSetup()) {
             // Get salt from apr1 hashed by login
@@ -37,6 +49,12 @@ public class HtpasswdUtils {
         return false;
     }
 
+    /**
+     * Get the salt from htpsswd by login
+     *
+     * @param login
+     * @return
+     */
     public static String getSaltFromLogin(String login) {
         String salt = null;
         if (isSetup()) {
@@ -51,10 +69,20 @@ public class HtpasswdUtils {
         return salt;
     }
 
+    /**
+     * Verify if the class was setting up calling setupFromFile method
+     *
+     * @return boolean
+     */
     public static boolean isSetup() {
         return dataHtpasswd != null;
     }
 
+    /**
+     * Verify if the dataHtpasswd attrbute is a standard Htpasswd
+     *
+     * @return
+     */
     private static boolean isValidHtpasswd() {
         // Use regex to verify if the data from htpasswd is correct
         Pattern pattern = Pattern.compile("((.+):\\$apr1(\\$.+){2}(\\n))+");

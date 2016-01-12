@@ -11,6 +11,5 @@ public class Main {
         // DefaultSecureManager.
         FSManager manager = new FSManager();
         new FileTree(manager);
-
     }
 }

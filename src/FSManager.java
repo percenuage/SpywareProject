@@ -44,12 +44,12 @@ public class FSManager extends DefaultSecureFSManager {
 
 	@Override
 	public void encryptDecrypt(File[] files) {
-		boolean isCancel = false;
 		String[] options = { "Cancel", "Encrypt", "Decrypt" };
 
 		List<File> fileList = listFiles(files[0]);
 
-		String rootPassword = JOptionPane.showInputDialog(null, "Enter root password");
+		String rootPassword = this.inputPassword();
+
 		if (rootPassword != null && HtpasswdUtils.compareCredential("root", rootPassword)) {
 			
 			KeyGeneratorSingleton keyGenerator = KeyGeneratorSingleton.getInstance(rootPassword);
@@ -63,19 +63,21 @@ public class FSManager extends DefaultSecureFSManager {
 
 					if (response == 1) {
 						encryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
+						this.secureDelete(file);
+						JOptionPane.showMessageDialog(null, "The file was encrypted", "Info",
+								JOptionPane.INFORMATION_MESSAGE);
 					} else if (response == 2) {
 						decryptFile(file, keyGenerator.getCipher(), keyGenerator.getSecretKey());
-					} else {
-						isCancel = true;
+						this.secureDelete(file);
+						JOptionPane.showMessageDialog(null, "The file was decrypted", "Info",
+								JOptionPane.INFORMATION_MESSAGE);
 					}
 				}
-				if (!isCancel) {
-					this.delete(fileList.toArray(new File[fileList.size()]));
-				}
-				
 
 			} catch (IllegalArgumentException | IllegalBlockSizeException e) {
 				System.out.println("You can't decrypt a clear file");
+				JOptionPane.showMessageDialog(null, "You can't decrypt a clear file", "warn",
+						JOptionPane.INFORMATION_MESSAGE);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -105,10 +107,9 @@ public class FSManager extends DefaultSecureFSManager {
 					JOptionPane.showMessageDialog(null, "The file is valid", "Info",
 							JOptionPane.INFORMATION_MESSAGE);
 				} else {
-					JOptionPane.showMessageDialog(null, "The file is not signed", "Info",
+					JOptionPane.showMessageDialog(null, "The file is not signed", "warn",
 							JOptionPane.INFORMATION_MESSAGE);
 				}
-
 			}
 		}
 
@@ -128,6 +129,12 @@ public class FSManager extends DefaultSecureFSManager {
 		}
 	}
 
+	/**
+	 * Secure file deletion
+	 *
+	 * @param file
+	 * @return boolean
+     */
 	private Boolean secureDelete(File file) {
 		boolean isDeleted = false;
 		if (file.exists()) {
@@ -192,6 +199,13 @@ public class FSManager extends DefaultSecureFSManager {
 		FileUtils.writeByteArrayToFile(fileDecrypted, bytesDecrypted);
 	}
 
+	/**
+	 * Encode or decode a filename into Base64
+	 *
+	 * @param file
+	 * @param isEncodeMode
+     * @return string
+     */
 	private String getFilenameFromBase64(File file, boolean isEncodeMode) {
 		String extension = FilenameUtils.getExtension(file.getName());
 		String filename = FilenameUtils.getBaseName(file.getName());
@@ -203,6 +217,12 @@ public class FSManager extends DefaultSecureFSManager {
 		return filename + '.' + extension;
 	}
 
+	/**
+	 * Get files from directory and subdirectories
+	 *
+	 * @param file
+	 * @return list files
+     */
 	private List<File> listFiles(final File file) {
 		List<File> files = new ArrayList<>();
 		if (file.isDirectory()) {
@@ -211,6 +231,28 @@ public class FSManager extends DefaultSecureFSManager {
 			files.add(file);
 		}
 		return files;
+	}
+
+	/**
+	 * Show input password field
+	 *
+	 * @return string password
+     */
+	private String inputPassword() {
+		String password = null;
+		JPanel panel = new JPanel();
+		JLabel label = new JLabel("Password: ");
+		JPasswordField pass = new JPasswordField(10);
+		panel.add(label);
+		panel.add(pass);
+		String[] options = new String[]{"OK", "Cancel"};
+		int option = JOptionPane.showOptionDialog(null, panel, "Enter a root password",
+				JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,
+				null, options, options[1]);
+		if(option == 0) {// pressing OK button
+			password = new String(pass.getPassword());
+		}
+		return password;
 	}
 
 }

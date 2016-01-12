@@ -1,18 +1,11 @@
-import org.apache.commons.io.FileUtils;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 
 import javax.crypto.*;
 import javax.crypto.spec.DESKeySpec;
 
 public class KeyGeneratorSingleton {
 
-	public static final String CIPHER_ALGORITHM = "DES";;
+	public static final String CIPHER_ALGORITHM = "DES";
 
 	private static String password;
 	private SecretKey secretKey;

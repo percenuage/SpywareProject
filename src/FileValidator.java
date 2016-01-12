@@ -12,6 +12,7 @@ import java.security.spec.X509EncodedKeySpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
+
 public class FileValidator {
 
 	public static final String SIGNATURE = ".signature_";
@@ -23,6 +24,11 @@ public class FileValidator {
 	public static final String SIGNATURE_SECURE_RANDOM = "SHA1PRNG";
 
 
+	/**
+	 * Sign a file
+	 *
+	 * @param file
+     */
 	public static void signFile(File file) {
 		try {
 
@@ -61,6 +67,12 @@ public class FileValidator {
 		}
 	}
 
+	/**
+	 * Verify if the file is valid or not
+	 *
+	 * @param file
+	 * @return boolean
+     */
 	public static boolean fileIsValid(File file) {
 		boolean verifies = false;
 		try {
@@ -83,7 +95,7 @@ public class FileValidator {
 			/* Input the signature bytes */
 			byte[] signature = FileUtils.readFileToByteArray(sign);
 
-			/* Create a signature object and initialize it with the private key */
+			/* Create a signature object and initialize it with the public key */
 			Signature dsa = Signature.getInstance(SIGNATURE_ALGORITHM, SIGNATURE_PROVIDER);
 			dsa.initVerify(pubKey);
 
