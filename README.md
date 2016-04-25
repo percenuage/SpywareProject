@@ -1,5 +1,5 @@
-# SpywareProject
-BE-I3-Security
+# Spyware
+ESEO - I3 - Security
 
 ## Configuration IDE
 Dans le build path, il faut ajouter :
